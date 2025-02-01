@@ -1,15 +1,14 @@
 const express = require('express');
 const connectDB = require('./connection/database');
-const User = require('./model/user');
-const validateUser = require('./utils/validation.js');
-const bcrypt = require('bcrypt');
 const app = express();
 const cookieParser = require('cookie-parser');
-const jwt = require('jsonwebtoken');
-const { userValidation } = require('./middlewares/auth.js');
 
 app.use(express.json());
 app.use(cookieParser());
+
+const authRouter = require('./routes/auth');
+const profileRouter = require('./routes/profile');
+const requestRouter = require('./routes/requests');
 
 // app.get('/user', async (req, res) => {
 //   const email = req.body.emailId;
@@ -81,53 +80,9 @@ app.use(cookieParser());
 //   }
 // });
 
-app.post('/signup', async (req, res) => {
-  try {
-    validateUser(req);
-    const { firstName, lastName, emailId, password } = req.body;
-    const passwordHash = await bcrypt.hash(password, 10);
-    console.log('p', passwordHash);
-    const user = new User({
-      firstName: firstName,
-      lastName: lastName,
-      emailId: emailId,
-      password: passwordHash,
-    });
-    await user.save();
-    res.send('data saved successfully');
-  } catch (err) {
-    res.status(400).send(err.message);
-  }
-});
-
-app.post('/login', async (req, res) => {
-  try {
-    const { emailId, password } = req.body;
-    const user = await User.findOne({ emailId: emailId });
-    if (!user) {
-      throw new Error('Invalid Username or Password');
-    }
-    const validUser = await user.validatePassword(password);
-    if (validUser) {
-      const jwtToken = await user.getJWT();
-      console.log(jwtToken);
-      res.cookie('token', jwtToken, { expires: new Date(Date.now() + 360000) });
-      res.send('Login Successful');
-    } else {
-      throw new Error('Invalid Username or Password');
-    }
-  } catch (err) {
-    res.status(400).send(err.message);
-  }
-});
-
-app.get('/profile', userValidation, async (req, res) => {
-  try {
-    res.send(req.user);
-  } catch (err) {
-    res.status(500).send(err.message);
-  }
-});
+app.use('/', authRouter);
+app.use('/', profileRouter);
+app.use('/', requestRouter);
 
 connectDB()
   .then(() => {
