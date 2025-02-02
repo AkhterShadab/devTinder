@@ -63,7 +63,6 @@ userSchema.methods.getJWT = async function () {
   const token = await jwt.sign({ _id: user._id }, 'dev@tinder', {
     expiresIn: '1d',
   });
-  console.log(token);
   return token;
 };
 
